@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
 )
@@ -32,6 +33,20 @@ func main() {
 
 		if container.Config.Labels["com.docker.swarm.service.id"] == "" {
 			log.Printf("IGNORING: container %s is not a service\n", cid)
+			return
+		}
+
+		expand := func(key string) string {
+			for _, v := range container.Config.Env {
+				if strings.HasPrefix(v, key+"=") {
+					return strings.SplitN(v, "=", 2)[1]
+				}
+			}
+			return ""
+		}
+
+		if os.Expand("$OLA_IGNORE", expand) != "" {
+			log.Printf("IGNORING: container %s has set $OLA_IGNORE\n", cid)
 			return
 		}
 
